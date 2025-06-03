@@ -1,0 +1,26 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H 192.168.56.12 >> ~/.ssh/known_hosts
+    - name: Validate HTML
+      run: |
+        curl -s http://192.168.56.12:80 | grep "Hello"
+    - name: Deploy
+      run: |
+        ssh -i ~/.ssh/id_rsa vagrant@192.168.56.12 "sudo cp /vagrant/index.html /var/www/html/index.html"
+        ssh -i ~/.ssh/id_rsa vagrant@192.168.56.12 "sudo systemctl restart apache2"
